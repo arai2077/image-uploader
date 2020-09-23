@@ -1,24 +1,113 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import axios from "axios";
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+import "./App.scss";
 
-function App() {
+const App = () => {
+  const [file, setFile] = useState(null);
+  const [uploadProgress, updateUploadProgress] = useState(0);
+  const [imageURI, setImageURI] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const acceptedTypes = [
+    'image/png',
+    'image/jpg',
+    'image/jpeg',
+  ];
+
+  const getBase64 = (img, callback) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => callback(reader.result));
+    reader.readAsDataURL(img);
+  }
+
+  const isValidFileType = (fileType) => {
+    return acceptedTypes.includes(fileType);
+  };
+
+  const handleFileUpload = (event) => {
+    event.preventDefault();
+
+    console.log("handleFileUpload", file)
+
+    if (!isValidFileType(file.type)) {
+        alert('Only images are allowed (png or jpg)');
+        return;
+    }
+
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    axios({
+        method: 'post',
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+        data: formData,
+        url: 'http://www.mocky.io/v2/5e29b0b93000006500faf227',
+        onUploadProgress: (size) => {
+            const progress = size.loaded / size.total * 100;
+            updateUploadProgress(Math.round(progress));
+        },
+    })
+    .then((response) => {
+        setUploadStatus(true);
+        setUploading(false);
+        getBase64(file, (uri) => {
+            setImageURI(uri);
+        });
+    })
+    .catch((err) => console.error(err));
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app">
+      <div className="image-preview">
+        {(uploadStatus && imageURI)
+          ? <img src={imageURI} alt="preview" />
+          : <div>A preview of {file ? file.name : "your photo"} will appear here.</div>
+        }
+      </div>
+
+      <form className="form" onSubmit={handleFileUpload}>
+        <button className="file-picker" type="button">
+          Choose file...
+
+          <input
+            className="file-input"
+            type="file"
+            name="file"
+            accept={acceptedTypes.toString()}
+            onChange={event => {
+              if (event.target.files && event.target.files.length > 0) {
+                setFile(event.target.files[0]);
+              }
+            }}
+          />
+        </button>
+
+        <button className="upload-button" type="submit">
+          Submit
+        </button>
+      </form>
+
+      {uploading
+        &&
+        <div className="progress-bar-container">
+            <CircularProgressbar
+                value={uploadProgress}
+                text={`${uploadProgress}% uploaded`}
+                styles={buildStyles({
+                    textSize: '10px',
+                    pathColor: 'teal',
+                })}
+            />
+        </div>
+      }
     </div>
   );
 }
