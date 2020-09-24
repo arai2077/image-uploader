@@ -48,14 +48,14 @@ const App = () => {
             'Content-Type': 'multipart/form-data',
         },
         data: formData,
-        url: 'http://www.mocky.io/v2/5e29b0b93000006500faf227',
+        url: 'http://localhost:8000/upload',
         onUploadProgress: (size) => {
             const progress = size.loaded / size.total * 100;
             updateUploadProgress(Math.round(progress));
         },
     })
     .then((response) => {
-        setUploadStatus(true);
+        setUploadStatus(response);
         setUploading(false);
         getBase64(file, (uri) => {
             setImageURI(uri);
